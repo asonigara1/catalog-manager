@@ -31,11 +31,11 @@ exports.handler = async (event) => {
   }
 
   const DC_MAP = {
-    'in':     'www.zohoapis.in',
-    'com':    'www.zohoapis.com',
-    'eu':     'www.zohoapis.eu',
-    'com.au': 'www.zohoapis.com.au',
-    'jp':     'www.zohoapis.jp',
+    'in':     'inventory.zoho.in',
+    'com':    'inventory.zoho.com',
+    'eu':     'inventory.zoho.eu',
+    'com.au': 'inventory.zoho.com.au',
+    'jp':     'inventory.zoho.jp',
   };
 
   const apiHost = DC_MAP[dc];
@@ -43,7 +43,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: `Unknown dc: ${dc}` }) };
   }
 
-  const url = `https://${apiHost}/inventory/v1/${path}`;
+  const url = `https://${apiHost}/api/v1/${path}`;
 
   const reqHeaders = {
     'Authorization': `Zoho-oauthtoken ${token}`,
