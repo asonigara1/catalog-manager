@@ -862,7 +862,7 @@ function clearZSessAndConnect() {
 }
 
 function zohoConnect() {
-  const dc       = document.getElementById('zohoDcSelect')?.value || zCfg.dc || 'in';
+  const dc       = document.getElementById('zohoDcSelect')?.value || zCfg.dc || 'com';
   const clientId = document.getElementById('zohoClientId')?.value.trim() || zCfg.clientId;
   const orgId    = document.getElementById('zohoOrgId')?.value.trim() || zCfg.orgId || '';
   if (!clientId) { setZohoStatus('⚠️ Enter your Client ID first.', '#b45309'); return; }
@@ -940,7 +940,7 @@ async function zProxy(path) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      dc:    zCfg.dc || 'in',
+      dc:    zSess.dc || zCfg.dc || 'com',
       token: zSess.accessToken,
       orgId: zCfg.orgId || '',
       path,
@@ -1100,7 +1100,7 @@ function zohoPanel(state, data = {}) {
     const expiry   = zSess.expiresAt ? new Date(zSess.expiresAt).toLocaleTimeString() : 'not set';
     el.innerHTML = `<div class="zoho-state-msg" style="flex-direction:column;align-items:flex-start;gap:6px;">
       ⏱ <strong>Zoho session issue</strong>
-      <code style="font-size:10px;background:#f1f5f9;padding:3px 8px;border-radius:4px;">token=${hasToken} · expires=${expiry}</code>
+      <code style="font-size:10px;background:#f1f5f9;padding:3px 8px;border-radius:4px;">token=${hasToken} · expires=${expiry} · dc=${zSess.dc||zCfg.dc||'?'}</code>
       <button class="btn btn-primary btn-sm" onclick="clearZSessAndConnect()" style="margin-top:2px;">Clear &amp; Reconnect</button>
     </div>`;
 
