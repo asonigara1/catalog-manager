@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catalog Manager</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #eef2ff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.18);
+      --radius: 8px;
+      --zoho-green: #16a34a;
+      --zoho-green-bg: #f0fdf4;
+      --zoho-red: #dc2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 0 18px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(79,70,229,0.4);
+      z-index: 10;
+      gap: 12px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-left h1 { font-size: 16px; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+    .zoho-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .zoho-badge.connected { background: rgba(22,163,74,0.3); color: #bbf7d0; }
+    .zoho-badge.disconnected { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); }
+    .zoho-badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .zoho-badge.connected .dot { background: #4ade80; }
+    .zoho-badge.disconnected .dot { background: rgba(255,255,255,0.4); }
+
+    .btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 500;
+      transition: all 0.15s;
+      line-height: 1.5;
+    }
+    .btn-ghost { background: rgba(255,255,255,0.13); color: white; border: 1px solid rgba(255,255,255,0.2); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.22); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+    /* ── Setup Banner ── */
+    .setup-banner {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      flex-shrink: 0;
+    }
+
+    .setup-sections { display: flex; gap: 24px; flex-wrap: wrap; }
+
+    .setup-section {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .setup-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .setup-instructions {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 10px;
+      background: #f0f4ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    .setup-instructions a { color: var(--primary); text-decoration: none; font-weight: 500; }
+    .setup-instructions a:hover { text-decoration: underline; }
+
+    .setup-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    .setup-input {
+      padding: 8px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      outline: none;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .setup-input:focus { border-color: var(--primary); }
+    .setup-input.grow { flex: 1; }
+    .setup-input.w120 { width: 120px; }
+    .setup-input.w90 { width: 90px; }
+
+    .setup-select {
+      padding: 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      background: white;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+    }
+    .setup-select:focus { border-color: var(--primary); }
+
+    .status-line { margin-top: 7px; font-size: 12.5px; min-height: 18px; }
+
+    .divider-v {
+      width: 1px;
+      background: var(--border);
+      align-self: stretch;
+      margin: 0 4px;
+    }
+
+    /* ── Main Layout ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 250px;
+      min-width: 250px;
+      background: white;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-muted); }
+
+    .clear-link { font-size: 12px; color: var(--primary); background: none; border: none; cursor: pointer; font-weight: 500; }
+    .clear-link:hover { text-decoration: underline; }
+
+    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 10px 12px; }
+
+    .filter-group { margin-bottom: 12px; }
+
+    .filter-label { font-size: 11.5px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .filter-select, .filter-input {
+      width: 100%;
+      padding: 6px 9px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      background: white;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .filter-select:focus, .filter-input:focus { border-color: var(--primary); }
+
+    .filter-range { display: flex; gap: 5px; align-items: center; }
+    .filter-range-input {
+      flex: 1;
+      padding: 6px 7px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      min-width: 0;
+      transition: border-color 0.15s;
+    }
+    .filter-range-input:focus { border-color: var(--primary); }
+    .range-sep { color: var(--text-muted); font-size: 12px; }
+
+    /* ── Results ── */
+    .results-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .results-toolbar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .search-wrap { position: relative; flex: 1; max-width: 280px; }
+    .search-icon-abs { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+    .search-input {
+      width: 100%;
+      padding: 7px 11px 7px 30px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      outline: none;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--primary); }
+
+    .results-meta { margin-left: auto; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+    .results-meta strong { color: var(--text); }
+
+    .table-wrap { flex: 1; overflow: auto; padding: 12px 14px; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .data-table thead { background: #f1f5f9; position: sticky; top: 0; z-index: 2; }
+    .data-table th { padding: 9px 13px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); white-space: nowrap; border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 10px 13px; border-bottom: 1px solid #f1f5f9; color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr { cursor: pointer; transition: background 0.1s; }
+    .data-table tbody tr:hover { background: var(--primary-light); }
+
+    .sku-badge { font-family: 'SFMono-Regular', monospace; font-size: 11.5px; background: var(--primary-light); color: var(--primary); padding: 2px 7px; border-radius: 4px; display: inline-block; font-weight: 600; }
+
+    .table-note { text-align: center; padding: 12px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); }
+
+    /* ── States ── */
+    .state-center { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 240px; color: var(--text-muted); text-align: center; padding: 40px; }
+    .state-icon { font-size: 40px; margin-bottom: 12px; }
+    .state-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+    .state-sub { font-size: 13px; line-height: 1.5; max-width: 320px; }
+
+    .spinner-ring { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+    .spinner-sm { width: 20px; height: 20px; border-width: 2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Drawer ── */
+    .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.4); z-index: 50; backdrop-filter: blur(2px); }
+    .drawer-overlay.active { display: block; }
+
+    .drawer {
+      position: fixed;
+      top: 0; right: 0;
+      height: 100vh;
+      width: 500px;
+      max-width: 95vw;
+      background: white;
+      box-shadow: -6px 0 32px rgba(0,0,0,0.15);
+      z-index: 51;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.24s cubic-bezier(0.4,0,0.2,1);
+    }
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+
+    .drawer-sku { font-size: 18px; font-weight: 700; font-family: monospace; color: var(--primary); }
+    .drawer-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .drawer-close {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 15px; color: var(--text-muted); transition: all 0.15s; flex-shrink: 0;
+    }
+    .drawer-close:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+    .drawer-body { flex: 1; overflow-y: auto; }
+
+    /* ── Zoho Panel (inside drawer) ── */
+    .zoho-panel {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: white;
+    }
+
+    .zoho-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .zoho-panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .zoho-state-msg {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 6px 0;
+    }
+
+    /* Loaded state layout */
+    .zoho-data-grid {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .zoho-image-box {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .zoho-image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .zoho-image-placeholder { font-size: 28px; }
+
+    .zoho-metrics { display: flex; flex-direction: column; gap: 8px; }
+
+    .zoho-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    .zoho-stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 10px;
+    }
+
+    .zoho-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
+    .zoho-stat-value { font-size: 14px; font-weight: 700; color: var(--text); }
+    .zoho-stat-value.green { color: var(--zoho-green); }
+    .zoho-stat-value.red { color: var(--zoho-red); }
+
+    /* Recent Sales */
+    .zoho-sales { margin-top: 12px; }
+    .zoho-sales-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; }
+
+    .sales-list { display: flex; flex-direction: column; gap: 5px; }
+
+    .sale-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      background: var(--bg);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+
+    .sale-row-left { display: flex; flex-direction: column; gap: 1px; }
+    .sale-order-no { font-weight: 600; color: var(--text); }
+    .sale-date { font-size: 11px; color: var(--text-muted); }
+    .sale-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+    .sale-qty { font-weight: 600; color: var(--primary); }
+    .sale-amount { font-size: 11px; color: var(--text-muted); }
+
+    .no-sales-msg { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+    /* ── Sheet Detail Section ── */
+    .sheet-section { padding: 14px 18px; }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .detail-item { padding: 9px 11px; background: var(--bg); border-radius: 7px; border: 1px solid var(--border); }
+    .detail-item.full { grid-column: 1 / -1; }
+    .detail-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
+    .detail-value { font-size: 13px; font-weight: 500; color: var(--text); word-break: break-word; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(8px); background: #1e293b; color: white; padding: 9px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; z-index: 200; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="header">
+  <div class="header-left">
+    <span>📦</span>
+    <h1>Catalog Manager</h1>
+    <span id="headerMeta" style="font-size:11.5px;opacity:0.6;margin-left:4px;"></span>
+  </div>
+  <div class="header-right">
+    <div class="zoho-badge disconnected" id="zohoBadge" onclick="toggleSetup()" title="Click to manage Zoho connection">
+      <span class="dot"></span>
+      <span id="zohoBadgeText">Zoho: Not connected</span>
+    </div>
+    <button class="btn btn-ghost" onclick="toggleSetup()">⚙ Configure</button>
+    <button class="btn btn-ghost" onclick="resetFilters()">↺ Reset</button>
+  </div>
+</header>
+
+<!-- ── Setup Banner ── -->
+<div class="setup-banner" id="setupBanner">
+  <div class="setup-sections">
+
+    <!-- Google Sheet -->
+    <div class="setup-section">
+      <div class="setup-section-title">
+        📊 Google Sheet
+      </div>
+      <div class="setup-instructions">
+        Share your sheet as <strong>"Anyone with the link can view"</strong>, then paste the URL below.
+        Optionally enter the tab name if your data is on a specific sheet.
+      </div>
+      <div class="setup-row">
+        <input type="text" class="setup-input grow" id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/…" />
+        <input type="text" class="setup-input w120" id="sheetNameInput" placeholder="Sheet tab (opt.)" />
+        <button class="btn btn-primary" onclick="loadSheet()" id="loadSheetBtn">Load</button>
+      </div>
+      <div class="status-line" id="sheetStatus"></div>
+    </div>
+
+    <div class="divider-v"></div>
+
+    <!-- Zoho Inventory -->
+    <div class="setup-section">
+      <div class="setup-section-title">
+        🔗 Zoho Inventory <span style="font-size:10px;font-weight:400;color:var(--text-muted);margin-left:4px;">(live data on SKU click)</span>
+      </div>
+      <div class="setup-instructions">
+        <strong>One-time setup:</strong>
+        1. Go to <a href="https://api-console.zoho.in" target="_blank">api-console.zoho.in</a> →
+        Add Client → <strong>Server-based Application</strong><br>
+        2. Set <strong>Redirect URI</strong> = this page's URL<br>
+        3. Copy the <strong>Client ID</strong> and paste below. No Client Secret needed.
+      </div>
+      <div class="setup-row">
+        <select class="setup-select" id="zohoDcSelect">
+          <option value="in">India (.in)</option>
+          <option value="com">USA (.com)</option>
+          <option value="eu">Europe (.eu)</option>
+          <option value="com.au">Australia (.com.au)</option>
+          <option value="jp">Japan (.jp)</option>
+        </select>
+        <input type="text" class="setup-input grow" id="zohoClientId" placeholder="Zoho Client ID (1000.XXXX…)" />
+        <button class="btn btn-primary" onclick="zohoConnect()" id="zohoConnectBtn">Connect</button>
+      </div>
+      <div class="status-line" id="zohoStatus"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div class="main" id="mainApp" style="display:none;">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Filters</span>
+      <button class="clear-link" onclick="resetFilters()">Clear all</button>
+    </div>
+    <div class="sidebar-scroll" id="filtersContainer"></div>
+  </aside>
+
+  <div class="results-area">
+    <div class="results-toolbar">
+      <div class="search-wrap">
+        <svg class="search-icon-abs" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" class="search-input" id="skuSearch" placeholder="Search SKU or any field…" oninput="applyFilters()" />
+      </div>
+      <span class="results-meta" id="resultsMeta"></span>
+    </div>
+    <div class="table-wrap">
+      <div id="tableContainer">
+        <div class="state-center">
+          <div class="state-icon">🔗</div>
+          <div class="state-title">No data loaded</div>
+          <div class="state-sub">Paste your Google Sheet URL above to get started.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Detail Drawer ── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="detailDrawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-sku" id="drawerSku">—</div>
+      <div class="drawer-subtitle" id="drawerSubtitle"></div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()" title="Close (Esc)">✕</button>
+  </div>
+  <div class="drawer-body">
+
+    <!-- Zoho Live Panel -->
+    <div class="zoho-panel" id="zohoPanel">
+      <div class="zoho-panel-header">
+        <div class="zoho-panel-title">
+          🔗 Zoho Live Data
+        </div>
+        <button class="btn btn-sm btn-ghost" id="zohoReconnectBtn" onclick="zohoConnect()" style="display:none;background:#fee2e2;color:#dc2626;border-color:#fca5a5;">Reconnect</button>
+      </div>
+      <div id="zohoPanelContent">
+        <!-- States injected by JS -->
+      </div>
+    </div>
+
+    <!-- Google Sheet Details -->
+    <div class="sheet-section">
+      <div class="section-title">Catalog Details (Google Sheet)</div>
+      <div class="detail-grid" id="detailGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  GOOGLE SHEET LOADER
+// ═══════════════════════════════════════════════════════
+
+let allData = [], filteredData = [], columns = [], filterConfig = {};
+
+const PRIORITY_KW = ['sku','category','subcategory','gender','tp','cost','price','mrp','launch','year','occasion','usp','brand','style','colour','color'];
+const NUMERIC_KW  = ['tp','cost','price','mrp','year','qty','quantity','moq','gsm','weight','height','width','length'];
+const TABLE_MAX   = 9;
+
+function extractSheetId(url) {
+  const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : null;
+}
+
+function loadSheet() {
+  const url     = document.getElementById('sheetUrlInput').value.trim();
+  const sheet   = document.getElementById('sheetNameInput').value.trim();
+  const sheetId = extractSheetId(url);
+
+  if (!sheetId) { setSheetStatus('❌ Invalid URL.', '#dc2626'); return; }
+
+  setSheetStatus('⏳ Loading…', '#64748b');
+  document.getElementById('loadSheetBtn').disabled = true;
+
+  let gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+  if (sheet) gvizUrl += `&sheet=${encodeURIComponent(sheet)}`;
+
+  window.google = window.google || {};
+  window.google.visualization = window.google.visualization || {};
+  window.google.visualization.Query = window.google.visualization.Query || {};
+
+  const prev = window.google.visualization.Query.setResponse;
+  let handled = false;
+
+  window.google.visualization.Query.setResponse = function(resp) {
+    if (handled) return;
+    handled = true;
+    window.google.visualization.Query.setResponse = prev;
+    document.getElementById('loadSheetBtn').disabled = false;
+    const old = document.getElementById('__gviz__');
+    if (old) old.parentNode.removeChild(old);
+
+    if (!resp || !resp.table) { setSheetStatus('❌ No data returned. Ensure the sheet is publicly accessible.', '#dc2626'); return; }
+    if (resp.status === 'error') {
+      const msg = resp.errors?.[0]?.message || 'Unknown error';
+      setSheetStatus(`❌ ${msg}`, '#dc2626'); return;
+    }
+
+    const parsed = parseGviz(resp);
+    allData  = parsed.rows;
+    columns  = parsed.columns;
+
+    if (!allData.length) { setSheetStatus('⚠️ No rows found.', '#b45309'); return; }
+    setSheetStatus(`✅ ${allData.length} rows · ${columns.length} columns loaded.`, '#15803d');
+    document.getElementById('headerMeta').textContent = `${allData.length} SKUs`;
+    initApp();
+  };
+
+  const s = document.createElement('script');
+  s.id = '__gviz__';
+  s.onerror = () => { if (!handled) { handled = true; document.getElementById('loadSheetBtn').disabled = false; setSheetStatus('❌ Network error.', '#dc2626'); } };
+  s.src = gvizUrl;
+  document.head.appendChild(s);
+}
+
+function parseGviz(resp) {
+  const tbl  = resp.table;
+  const cols = tbl.cols.map(c => (c.label || c.id || '').trim()).filter(Boolean);
+  const rows = (tbl.rows || []).map(row => {
+    const obj = {};
+    cols.forEach((col, i) => {
+      const cell = row.c?.[i];
+      let val = '';
+      if (cell && cell.v !== null && cell.v !== undefined)
+        val = cell.f !== undefined && cell.f !== null ? cell.f : cell.v;
+      obj[col] = String(val).trim();
+    });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v !== ''));
+  return { columns: cols, rows };
+}
+
+function setSheetStatus(html, color) {
+  const el = document.getElementById('sheetStatus');
+  el.style.color = color;
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  FILTERS & TABLE
+// ═══════════════════════════════════════════════════════
+
+function isNumericCol(col) {
+  const name = col.toLowerCase();
+  if (NUMERIC_KW.some(k => name.includes(k))) return true;
+  const sample = allData.map(r => r[col]).filter(v => v !== '').slice(0, 30);
+  return sample.length > 0 && sample.filter(v => !isNaN(parseFloat(v))).length / sample.length > 0.7;
+}
+
+function uniqueValues(col) {
+  return [...new Set(allData.map(r => r[col]).filter(v => v !== ''))].sort((a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.localeCompare(b);
+  });
+}
+
+function cssId(col) { return col.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+function initApp() {
+  buildFilters();
+  document.getElementById('mainApp').style.display = 'flex';
+  document.getElementById('setupBanner').style.display = 'none';
+  applyFilters();
+}
+
+function buildFilters() {
+  const container = document.getElementById('filtersContainer');
+  container.innerHTML = '';
+  filterConfig = {};
+
+  const skuCol = columns.find(c => /^sku/i.test(c.trim()));
+
+  columns.forEach(col => {
+    if (skuCol && col === skuCol) return;
+    const uniq = uniqueValues(col), isNum = isNumericCol(col), id = cssId(col);
+    const group = document.createElement('div');
+    group.className = 'filter-group';
+    const label = document.createElement('label');
+    label.className = 'filter-label';
+    label.textContent = col; label.title = col;
+    group.appendChild(label);
+
+    if (isNum) {
+      filterConfig[col] = 'range';
+      const wrap = document.createElement('div');
+      wrap.className = 'filter-range';
+      wrap.innerHTML = `<input class="filter-range-input" type="number" id="fmin_${id}" placeholder="Min" oninput="applyFilters()"/>
+        <span class="range-sep">–</span>
+        <input class="filter-range-input" type="number" id="fmax_${id}" placeholder="Max" oninput="applyFilters()"/>`;
+      group.appendChild(wrap);
+    } else if (uniq.length <= 80) {
+      filterConfig[col] = 'select';
+      const sel = document.createElement('select');
+      sel.className = 'filter-select'; sel.id = `fsel_${id}`; sel.onchange = applyFilters;
+      sel.innerHTML = `<option value="">All</option>` + uniq.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      group.appendChild(sel);
+    } else {
+      filterConfig[col] = 'text';
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'filter-input'; inp.id = `ftxt_${id}`;
+      inp.placeholder = `Search ${col}…`; inp.oninput = applyFilters;
+      group.appendChild(inp);
+    }
+    container.appendChild(group);
+  });
+}
+
+function applyFilters() {
+  const q = (document.getElementById('skuSearch')?.value || '').trim().toLowerCase();
+  filteredData = allData.filter(row => {
+    if (q && !Object.values(row).some(v => v.toLowerCase().includes(q))) return false;
+    for (const col of columns) {
+      const type = filterConfig[col], id = cssId(col);
+      if (!type) continue;
+      if (type === 'range') {
+        const mn = document.getElementById(`fmin_${id}`)?.value, mx = document.getElementById(`fmax_${id}`)?.value;
+        const rv = parseFloat(row[col]);
+        if (mn !== '' && mn !== undefined && (isNaN(rv) || rv < parseFloat(mn))) return false;
+        if (mx !== '' && mx !== undefined && (isNaN(rv) || rv > parseFloat(mx))) return false;
+      } else if (type === 'select') {
+        const v = document.getElementById(`fsel_${id}`)?.value;
+        if (v && row[col] !== v) return false;
+      } else if (type === 'text') {
+        const v = (document.getElementById(`ftxt_${id}`)?.value || '').toLowerCase();
+        if (v && !row[col].toLowerCase().includes(v)) return false;
+      }
+    }
+    return true;
+  });
+  renderTable(filteredData);
+  const el = document.getElementById('resultsMeta');
+  el.innerHTML = `<strong>${filteredData.length}</strong> of <strong>${allData.length}</strong> SKUs`;
+}
+
+function chooseCols() {
+  const skuCol = columns.find(c => /^sku/i.test(c.trim()));
+  const ordered = skuCol ? [skuCol] : [];
+  for (const kw of PRIORITY_KW) {
+    const m = columns.find(c => c.toLowerCase().includes(kw) && !ordered.includes(c));
+    if (m && ordered.length < TABLE_MAX) ordered.push(m);
+  }
+  for (const c of columns) { if (!ordered.includes(c) && ordered.length < TABLE_MAX) ordered.push(c); }
+  return ordered;
+}
+
+function renderTable(data) {
+  const container = document.getElementById('tableContainer');
+  if (!data.length) {
+    container.innerHTML = `<div class="state-center"><div class="state-icon">🔍</div><div class="state-title">No results</div><div class="state-sub">Try adjusting filters.</div></div>`;
+    return;
+  }
+  const cols = chooseCols();
+  const MAX = 1000, rows = data.slice(0, MAX);
+  let html = `<table class="data-table"><thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach(row => {
+    const idx = allData.indexOf(row);
+    html += `<tr onclick="openDrawer(${idx})">` + cols.map((col, ci) => {
+      const v = row[col] || '–';
+      return ci === 0 ? `<td><span class="sku-badge">${esc(v)}</span></td>` : `<td title="${esc(v)}">${esc(v)}</td>`;
+    }).join('') + `</tr>`;
+  });
+  html += `</tbody></table>`;
+  if (data.length > MAX) html += `<div class="table-note">Showing first ${MAX} of ${data.length}. Refine filters.</div>`;
+  container.innerHTML = html;
+}
+
+function resetFilters() {
+  const s = document.getElementById('skuSearch'); if (s) s.value = '';
+  columns.forEach(col => {
+    const id = cssId(col), type = filterConfig[col];
+    if (type === 'range') { const mn = document.getElementById(`fmin_${id}`), mx = document.getElementById(`fmax_${id}`); if (mn) mn.value=''; if (mx) mx.value=''; }
+    else { const el = document.getElementById(`fsel_${id}`) || document.getElementById(`ftxt_${id}`); if (el) el.value=''; }
+  });
+  if (allData.length) applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ZOHO INVENTORY INTEGRATION
+// ═══════════════════════════════════════════════════════
+
+const ZOHO_DC = {
+  'in':     { api: 'www.zohoapis.in',     auth: 'accounts.zoho.in' },
+  'com':    { api: 'www.zohoapis.com',    auth: 'accounts.zoho.com' },
+  'eu':     { api: 'www.zohoapis.eu',     auth: 'accounts.zoho.eu' },
+  'com.au': { api: 'www.zohoapis.com.au', auth: 'accounts.zoho.com.au' },
+  'jp':     { api: 'www.zohoapis.jp',     auth: 'accounts.zoho.jp' },
+};
+
+let zCfg  = loadZCfg();   // persistent: dc, clientId, orgId
+let zSess = loadZSess();  // session: accessToken, expiresAt
+
+function loadZCfg() {
+  try { return JSON.parse(localStorage.getItem('cm_z_cfg') || '{}'); } catch { return {}; }
+}
+function saveZCfg() { localStorage.setItem('cm_z_cfg', JSON.stringify(zCfg)); }
+
+function loadZSess() {
+  try {
+    const s = JSON.parse(localStorage.getItem('cm_z_sess') || '{}');
+    if (s.expiresAt && s.expiresAt < Date.now()) { localStorage.removeItem('cm_z_sess'); return {}; }
+    return s;
+  } catch { return {}; }
+}
+function saveZSess() { localStorage.setItem('cm_z_sess', JSON.stringify(zSess)); }
+
+function isZConnected() {
+  return !!(zSess.accessToken && zSess.expiresAt && zSess.expiresAt > Date.now() + 10000);
+}
+
+function zohoConnect() {
+  const dc       = document.getElementById('zohoDcSelect')?.value || zCfg.dc || 'in';
+  const clientId = document.getElementById('zohoClientId')?.value.trim() || zCfg.clientId;
+  if (!clientId) { setZohoStatus('⚠️ Enter your Client ID first.', '#b45309'); return; }
+
+  zCfg.dc       = dc;
+  zCfg.clientId = clientId;
+  saveZCfg();
+
+  const { auth }  = ZOHO_DC[dc];
+  const redirect  = encodeURIComponent(window.location.href.split('?')[0].split('#')[0]);
+  const scope     = encodeURIComponent([
+    'ZohoInventory.items.READ',
+    'ZohoInventory.invoices.READ',
+    'ZohoInventory.salesorders.READ',
+    'ZohoInventory.settings.READ',
+  ].join(','));
+
+  window.location.href = `https://${auth}/oauth/v2/auth?client_id=${encodeURIComponent(clientId)}&response_type=token&redirect_uri=${redirect}&scope=${scope}&prompt=consent`;
+}
+
+// Called on page load — picks up the token from URL hash after OAuth redirect
+function checkOAuthReturn() {
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token')) return;
+
+  const params     = new URLSearchParams(hash.replace(/^#/, ''));
+  const token      = params.get('access_token');
+  const expiresIn  = parseInt(params.get('expires_in') || '3600');
+
+  if (token) {
+    zSess = { accessToken: token, expiresAt: Date.now() + expiresIn * 1000 };
+    saveZSess();
+    history.replaceState(null, '', window.location.pathname);
+
+    if (!zCfg.orgId) {
+      fetchZOrgId().then(() => { updateZBadge(); setZohoStatus('✅ Connected! Org ID fetched automatically.', '#15803d'); });
+    } else {
+      updateZBadge();
+      setZohoStatus('✅ Connected and ready.', '#15803d');
+    }
+  }
+}
+
+// Restore saved config into the UI fields
+function restoreZCfgUI() {
+  if (zCfg.dc)       { const el = document.getElementById('zohoDcSelect'); if (el) el.value = zCfg.dc; }
+  if (zCfg.clientId) { const el = document.getElementById('zohoClientId'); if (el) el.value = zCfg.clientId; }
+  updateZBadge();
+  if (isZConnected()) setZohoStatus('✅ Connected and ready.', '#15803d');
+}
+
+function updateZBadge() {
+  const badge = document.getElementById('zohoBadge');
+  const text  = document.getElementById('zohoBadgeText');
+  if (isZConnected()) {
+    badge.className = 'zoho-badge connected';
+    text.textContent = 'Zoho: Connected';
+  } else {
+    badge.className = 'zoho-badge disconnected';
+    text.textContent = 'Zoho: Not connected';
+  }
+}
+
+function setZohoStatus(html, color) {
+  const el = document.getElementById('zohoStatus');
+  if (el) { el.style.color = color; el.innerHTML = html; }
+}
+
+// ── Zoho API helpers (routed through Netlify proxy to avoid CORS) ──
+
+async function zProxy(path) {
+  return fetch('/.netlify/functions/zoho-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      dc:    zCfg.dc || 'in',
+      token: zSess.accessToken,
+      orgId: zCfg.orgId || '',
+      path,
+    }),
+  });
+}
+
+async function fetchZOrgId() {
+  try {
+    const r = await zProxy('organizations');
+    const d = await r.json();
+    if (d.organizations?.length) {
+      zCfg.orgId = String(d.organizations[0].organization_id);
+      saveZCfg();
+    }
+  } catch (e) { console.warn('Org fetch failed:', e); }
+}
+
+async function zSearchItem(sku) {
+  const r = await zProxy(`items?search_text=${encodeURIComponent(sku)}`);
+  if (!r.ok) throw new Error(`Zoho API error ${r.status}`);
+  const d = await r.json();
+  if (!d.items?.length) return null;
+  return d.items.find(i => (i.sku||'').toLowerCase() === sku.toLowerCase()) || d.items[0];
+}
+
+async function zFetchImage(itemId) {
+  try {
+    const r = await zProxy(`items/${itemId}/image`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d._type === 'image' && d.base64) return `data:${d.contentType};base64,${d.base64}`;
+    return null;
+  } catch { return null; }
+}
+
+async function zFetchSales(itemId, limit = 5) {
+  try {
+    const r = await zProxy(`salesorders?item_id=${itemId}&sort_column=date&sort_order=D&per_page=${limit}`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return d.salesorders || [];
+  } catch { return []; }
+}
+
+// ── Drawer ────────────────────────────────────────────
+
+let currentDrawerIdx = -1;
+
+function openDrawer(idx) {
+  const row = allData[idx];
+  if (!row) return;
+  currentDrawerIdx = idx;
+
+  const skuCol = columns.find(c => /^sku/i.test(c.trim())) || columns[0];
+  const sku    = row[skuCol] || '';
+
+  document.getElementById('drawerSku').textContent = sku || '(no SKU)';
+
+  // Subtitle
+  const catCol = columns.find(c => /^category$/i.test(c.trim()));
+  const subCol = columns.find(c => /subcategory/i.test(c));
+  const parts  = [catCol && row[catCol], subCol && row[subCol]].filter(Boolean);
+  document.getElementById('drawerSubtitle').textContent = parts.join(' › ') || '';
+
+  // Sheet detail grid
+  buildDetailGrid(row, skuCol);
+
+  // Zoho panel
+  loadZohoForSku(sku);
+
+  document.getElementById('drawerOverlay').classList.add('active');
+  requestAnimationFrame(() => document.getElementById('detailDrawer').classList.add('open'));
+}
+
+function closeDrawer() {
+  document.getElementById('detailDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('active');
+  currentDrawerIdx = -1;
+}
+
+function buildDetailGrid(row, skuCol) {
+  const grid = document.getElementById('detailGrid');
+  grid.innerHTML = '';
+
+  const priority = [], other = [];
+  columns.forEach(col => {
+    if (col === skuCol) return;
+    const v = row[col]; if (!v && v !== 0) return;
+    (PRIORITY_KW.some(k => col.toLowerCase().includes(k)) ? priority : other).push(col);
+  });
+
+  [...priority, ...other].forEach(col => {
+    const val  = row[col];
+    const item = document.createElement('div');
+    item.className = `detail-item${String(val).length > 40 ? ' full' : ''}`;
+    item.innerHTML = `<div class="detail-label">${esc(col)}</div><div class="detail-value">${esc(String(val))}</div>`;
+    grid.appendChild(item);
+  });
+}
+
+// ── Zoho panel states ──────────────────────────────────
+
+async function loadZohoForSku(sku) {
+  if (!sku) { zohoPanel('no-sku'); return; }
+
+  if (!isZConnected()) {
+    // Check if token just expired
+    const wasConnected = !!zSess.accessToken;
+    zohoPanel(wasConnected ? 'expired' : 'disconnected');
+    document.getElementById('zohoReconnectBtn').style.display = wasConnected ? 'inline-flex' : 'none';
+    return;
+  }
+
+  document.getElementById('zohoReconnectBtn').style.display = 'none';
+  zohoPanel('loading');
+
+  try {
+    if (!zCfg.orgId) await fetchZOrgId();
+
+    const item = await zSearchItem(sku);
+    if (!item) { zohoPanel('not-found', { sku }); return; }
+
+    // Parallel: image + sales
+    const [imageUrl, sales] = await Promise.all([
+      zFetchImage(item.item_id),
+      zFetchSales(item.item_id, 5),
+    ]);
+
+    zohoPanel('loaded', { item, imageUrl, sales });
+  } catch (err) {
+    const expired = err.message?.includes('401') || !isZConnected();
+    zohoPanel(expired ? 'expired' : 'error', { msg: err.message });
+    if (expired) document.getElementById('zohoReconnectBtn').style.display = 'inline-flex';
+  }
+}
+
+function zohoPanel(state, data = {}) {
+  const el = document.getElementById('zohoPanelContent');
+
+  if (state === 'disconnected') {
+    el.innerHTML = `<div class="zoho-state-msg">
+      🔌 <span>Connect Zoho Inventory to see live stock, pricing &amp; sales data.</span>
+      <button class="btn btn-primary btn-sm" onclick="toggleSetup()">Set up Zoho</button>
+    </div>`;
+
+  } else if (state === 'loading') {
+    el.innerHTML = `<div class="zoho-state-msg"><div class="spinner-ring spinner-sm"></div> Fetching from Zoho Inventory…</div>`;
+
+  } else if (state === 'expired') {
+    el.innerHTML = `<div class="zoho-state-msg">⏱ Zoho session expired. Click <strong>Reconnect</strong> above.</div>`;
+
+  } else if (state === 'not-found') {
+    el.innerHTML = `<div class="zoho-state-msg">🔍 SKU <strong>${esc(data.sku)}</strong> not found in Zoho Inventory.</div>`;
+
+  } else if (state === 'error') {
+    el.innerHTML = `<div class="zoho-state-msg">⚠️ Error loading Zoho data. <small style="color:#94a3b8">${esc(data.msg||'')}</small></div>`;
+
+  } else if (state === 'no-sku') {
+    el.innerHTML = `<div class="zoho-state-msg" style="font-size:12px;color:#94a3b8;">No SKU value to look up.</div>`;
+
+  } else if (state === 'loaded') {
+    const { item, imageUrl, sales } = data;
+    const price     = item.rate !== undefined     ? fmt(item.rate)             : '—';
+    const cost      = item.purchase_rate !== undefined ? fmt(item.purchase_rate) : '—';
+    const stock     = item.available_stock !== undefined ? item.available_stock  : (item.actual_available_stock ?? '—');
+    const stockNum  = parseFloat(stock);
+    const stockClass = isNaN(stockNum) ? '' : stockNum <= 0 ? 'red' : stockNum < 10 ? 'red' : 'green';
+
+    const imageHtml = imageUrl
+      ? `<img src="${imageUrl}" alt="Product image" onerror="this.parentNode.innerHTML='<span class=\\'zoho-image-placeholder\\'>📦</span>'" />`
+      : `<span class="zoho-image-placeholder">📦</span>`;
+
+    const salesHtml = sales.length
+      ? sales.map(so => {
+          const qty    = so.line_items?.find(li => li)?.quantity ?? '—';
+          const amount = so.total !== undefined ? `₹${Number(so.total).toLocaleString('en-IN')}` : '—';
+          return `<div class="sale-row">
+            <div class="sale-row-left">
+              <span class="sale-order-no">${esc(so.salesorder_number || so.salesorder_id)}</span>
+              <span class="sale-date">${esc(so.date || '')}</span>
+            </div>
+            <div class="sale-right">
+              <span class="sale-qty">Qty ${esc(String(qty))}</span>
+              <span class="sale-amount">${esc(amount)}</span>
+            </div>
+          </div>`;
+        }).join('')
+      : `<div class="no-sales-msg">No recent sales orders found.</div>`;
+
+    el.innerHTML = `
+      <div class="zoho-data-grid">
+        <div class="zoho-image-box">${imageHtml}</div>
+        <div class="zoho-metrics">
+          <div class="zoho-stats-row">
+            <div class="zoho-stat">
+              <div class="zoho-stat-label">Selling Price</div>
+              <div class="zoho-stat-value">₹${price}</div>
+            </div>
+            <div class="zoho-stat">
+              <div class="zoho-stat-label">Cost / TP</div>
+              <div class="zoho-stat-value">₹${cost}</div>
+            </div>
+            <div class="zoho-stat">
+              <div class="zoho-stat-label">In Stock</div>
+              <div class="zoho-stat-value ${stockClass}">${esc(String(stock))}</div>
+            </div>
+          </div>
+          ${item.item_name ? `<div style="font-size:12px;color:var(--text-muted);">📦 ${esc(item.item_name)}</div>` : ''}
+        </div>
+      </div>
+      <div class="zoho-sales">
+        <div class="zoho-sales-title">Recent Sales Orders</div>
+        <div class="sales-list">${salesHtml}</div>
+      </div>`;
+  }
+}
+
+function fmt(n) {
+  return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+// ═══════════════════════════════════════════════════════
+//  SHARED UTILS
+// ═══════════════════════════════════════════════════════
+
+function toggleSetup() {
+  const b = document.getElementById('setupBanner');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// ── Boot ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  checkOAuthReturn();  // pick up Zoho token from URL hash
+  restoreZCfgUI();     // restore saved Zoho config into fields
+
+  document.getElementById('sheetUrlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadSheet();
+  });
+});
+</script>
+</body>
+</html>
