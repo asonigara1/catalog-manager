@@ -952,7 +952,11 @@ async function fetchZOrgId() {
 
 async function zSearchItem(sku) {
   const r = await zProxy(`items?search_text=${encodeURIComponent(sku)}`);
-  if (!r.ok) throw new Error(`Zoho API error ${r.status}`);
+  if (!r.ok) {
+    let detail = '';
+    try { const d = await r.json(); detail = d.message || d.error || JSON.stringify(d); } catch {}
+    throw new Error(`Zoho ${r.status}: ${detail || 'no detail'}`);
+  }
   const d = await r.json();
   if (!d.items?.length) return null;
   return d.items.find(i => (i.sku||'').toLowerCase() === sku.toLowerCase()) || d.items[0];
@@ -1089,7 +1093,10 @@ function zohoPanel(state, data = {}) {
     el.innerHTML = `<div class="zoho-state-msg">🔍 SKU <strong>${esc(data.sku)}</strong> not found in Zoho Inventory.</div>`;
 
   } else if (state === 'error') {
-    el.innerHTML = `<div class="zoho-state-msg">⚠️ Error loading Zoho data. <small style="color:#94a3b8">${esc(data.msg||'')}</small></div>`;
+    el.innerHTML = `<div class="zoho-state-msg" style="flex-direction:column;align-items:flex-start;gap:4px;">
+      ⚠️ <strong>Error loading Zoho data</strong>
+      <code style="font-size:11px;background:#f1f5f9;padding:4px 8px;border-radius:4px;word-break:break-all;">${esc(data.msg||'unknown error')}</code>
+    </div>`;
 
   } else if (state === 'no-org') {
     el.innerHTML = `<div class="zoho-state-msg">⚠️ Org ID missing. Open <strong>Configure</strong> → enter your Org ID → click Connect again.<br><small style="color:#94a3b8">Find it in Zoho Inventory → Settings → Organization Profile</small></div>`;
