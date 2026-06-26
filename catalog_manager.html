@@ -849,7 +849,16 @@ function loadZSess() {
 function saveZSess() { localStorage.setItem('cm_z_sess', JSON.stringify(zSess)); }
 
 function isZConnected() {
-  return !!(zSess.accessToken && zSess.expiresAt && zSess.expiresAt > Date.now() + 10000);
+  if (!zSess.accessToken) return false;
+  // If expiresAt is missing, assume token is still valid (don't block on missing metadata)
+  if (!zSess.expiresAt) return true;
+  return zSess.expiresAt > Date.now();
+}
+
+function clearZSessAndConnect() {
+  localStorage.removeItem('cm_z_sess');
+  zSess = {};
+  zohoConnect();
 }
 
 function zohoConnect() {
@@ -1087,7 +1096,13 @@ function zohoPanel(state, data = {}) {
     el.innerHTML = `<div class="zoho-state-msg"><div class="spinner-ring spinner-sm"></div> Fetching from Zoho Inventory…</div>`;
 
   } else if (state === 'expired') {
-    el.innerHTML = `<div class="zoho-state-msg">⏱ Zoho session expired. Click <strong>Reconnect</strong> above.</div>`;
+    const hasToken = !!zSess.accessToken;
+    const expiry   = zSess.expiresAt ? new Date(zSess.expiresAt).toLocaleTimeString() : 'not set';
+    el.innerHTML = `<div class="zoho-state-msg" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      ⏱ <strong>Zoho session issue</strong>
+      <code style="font-size:10px;background:#f1f5f9;padding:3px 8px;border-radius:4px;">token=${hasToken} · expires=${expiry}</code>
+      <button class="btn btn-primary btn-sm" onclick="clearZSessAndConnect()" style="margin-top:2px;">Clear &amp; Reconnect</button>
+    </div>`;
 
   } else if (state === 'not-found') {
     el.innerHTML = `<div class="zoho-state-msg">🔍 SKU <strong>${esc(data.sku)}</strong> not found in Zoho Inventory.</div>`;
