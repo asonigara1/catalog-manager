@@ -873,7 +873,7 @@ function zohoConnect() {
   saveZCfg();
 
   const { auth }  = ZOHO_DC[dc];
-  const redirect  = encodeURIComponent(window.location.href.split('?')[0].split('#')[0]);
+  const redirect  = encodeURIComponent(window.location.origin + '/oauth.html');
   const scope     = encodeURIComponent([
     'ZohoInventory.items.READ',
     'ZohoInventory.invoices.READ',
@@ -1203,8 +1203,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
 
 // ── Boot ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  checkOAuthReturn();  // pick up Zoho token from URL hash
-  restoreZCfgUI();     // restore saved Zoho config into fields
+  // Token is now saved by oauth.html before redirect — just restore config
+  restoreZCfgUI();
 
   document.getElementById('sheetUrlInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') loadSheet();
