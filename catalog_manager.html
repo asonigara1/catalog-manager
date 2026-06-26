@@ -511,7 +511,11 @@
           <option value="jp">Japan (.jp)</option>
         </select>
         <input type="text" class="setup-input grow" id="zohoClientId" placeholder="Zoho Client ID (1000.XXXX…)" />
+        <input type="text" class="setup-input w120" id="zohoOrgId" placeholder="Org ID" title="Zoho Inventory → Settings → Organization Profile → Organization ID" />
         <button class="btn btn-primary" onclick="zohoConnect()" id="zohoConnectBtn">Connect</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">
+        Org ID: Zoho Inventory → Settings → Organization Profile → Organization ID
       </div>
       <div class="status-line" id="zohoStatus"></div>
     </div>
@@ -851,10 +855,12 @@ function isZConnected() {
 function zohoConnect() {
   const dc       = document.getElementById('zohoDcSelect')?.value || zCfg.dc || 'in';
   const clientId = document.getElementById('zohoClientId')?.value.trim() || zCfg.clientId;
+  const orgId    = document.getElementById('zohoOrgId')?.value.trim() || zCfg.orgId || '';
   if (!clientId) { setZohoStatus('⚠️ Enter your Client ID first.', '#b45309'); return; }
 
   zCfg.dc       = dc;
   zCfg.clientId = clientId;
+  if (orgId) zCfg.orgId = orgId;
   saveZCfg();
 
   const { auth }  = ZOHO_DC[dc];
@@ -896,6 +902,7 @@ function checkOAuthReturn() {
 function restoreZCfgUI() {
   if (zCfg.dc)       { const el = document.getElementById('zohoDcSelect'); if (el) el.value = zCfg.dc; }
   if (zCfg.clientId) { const el = document.getElementById('zohoClientId'); if (el) el.value = zCfg.clientId; }
+  if (zCfg.orgId)    { const el = document.getElementById('zohoOrgId');    if (el) el.value = zCfg.orgId; }
   updateZBadge();
   if (isZConnected()) setZohoStatus('✅ Connected and ready.', '#15803d');
 }
@@ -1044,6 +1051,7 @@ async function loadZohoForSku(sku) {
 
   try {
     if (!zCfg.orgId) await fetchZOrgId();
+    if (!zCfg.orgId) { zohoPanel('no-org'); return; }
 
     const item = await zSearchItem(sku);
     if (!item) { zohoPanel('not-found', { sku }); return; }
@@ -1082,6 +1090,9 @@ function zohoPanel(state, data = {}) {
 
   } else if (state === 'error') {
     el.innerHTML = `<div class="zoho-state-msg">⚠️ Error loading Zoho data. <small style="color:#94a3b8">${esc(data.msg||'')}</small></div>`;
+
+  } else if (state === 'no-org') {
+    el.innerHTML = `<div class="zoho-state-msg">⚠️ Org ID missing. Open <strong>Configure</strong> → enter your Org ID → click Connect again.<br><small style="color:#94a3b8">Find it in Zoho Inventory → Settings → Organization Profile</small></div>`;
 
   } else if (state === 'no-sku') {
     el.innerHTML = `<div class="zoho-state-msg" style="font-size:12px;color:#94a3b8;">No SKU value to look up.</div>`;
