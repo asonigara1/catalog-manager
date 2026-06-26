@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connecting to Zoho…</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; }
+    .box { text-align: center; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { font-size: 14px; color: #64748b; }
+    .error { color: #dc2626; font-size: 13px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <div class="spinner"></div>
+  <p id="msg">Saving Zoho session…</p>
+  <div class="error" id="err"></div>
+</div>
+<script>
+  (function () {
+    const hash = window.location.hash;
+
+    if (!hash || !hash.includes('access_token')) {
+      document.getElementById('msg').textContent = 'No token found in URL.';
+      document.getElementById('err').textContent = 'Zoho did not return an access token. Close this tab and try connecting again.';
+      return;
+    }
+
+    const params     = new URLSearchParams(hash.replace(/^#/, ''));
+    const token      = params.get('access_token');
+    const expiresIn  = parseInt(params.get('expires_in') || '3600', 10);
+
+    if (!token) {
+      document.getElementById('err').textContent = 'Could not extract access token.';
+      return;
+    }
+
+    const session = {
+      accessToken: token,
+      expiresAt: Date.now() + expiresIn * 1000,
+    };
+
+    try {
+      localStorage.setItem('cm_z_sess', JSON.stringify(session));
+      document.getElementById('msg').textContent = 'Connected! Redirecting…';
+    } catch (e) {
+      document.getElementById('err').textContent = 'Could not save session: ' + e.message;
+      return;
+    }
+
+    // Go back to the main app
+    window.location.replace('/');
+  })();
+</script>
+</body>
+</html>
