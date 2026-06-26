@@ -40,17 +40,23 @@
     const expiresIn  = parseInt(params.get('expires_in') || '3600', 10);
     const expiresAt  = Date.now() + expiresIn * 1000;
 
+    // Map Zoho location → dc key used by the proxy
+    const LOCATION_DC = { us: 'com', eu: 'eu', in: 'in', au: 'com.au', jp: 'jp', ca: 'ca' };
+    const location    = params.get('location') || 'in';
+    const dc          = LOCATION_DC[location] || 'com';
+
     dbg.textContent += '\ntoken: ' + (token ? token.slice(0,12) + '…' : 'MISSING');
     dbg.textContent += '\nexpires_in: ' + expiresIn + 's';
     dbg.textContent += '\nexpiresAt: ' + new Date(expiresAt).toLocaleTimeString();
     dbg.textContent += '\nnow:       ' + new Date().toLocaleTimeString();
+    dbg.textContent += '\nlocation:  ' + location + ' → dc=' + dc;
 
     if (!token) {
       document.getElementById('err').textContent = 'Could not extract access token.';
       return;
     }
 
-    const session = { accessToken: token, expiresAt };
+    const session = { accessToken: token, expiresAt, dc };
 
     try {
       localStorage.setItem('cm_z_sess', JSON.stringify(session));
