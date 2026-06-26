@@ -22,36 +22,46 @@
   (function () {
     const hash = window.location.hash;
 
+    // ── DEBUG: show raw hash ──────────────────────────────
+    const dbg = document.createElement('pre');
+    dbg.style.cssText = 'font-size:11px;background:#f1f5f9;padding:10px 14px;border-radius:6px;margin-top:16px;max-width:560px;word-break:break-all;text-align:left;color:#334155;';
+    dbg.textContent = 'Hash: ' + (hash || '(empty)');
+    document.querySelector('.box').appendChild(dbg);
+    // ─────────────────────────────────────────────────────
+
     if (!hash || !hash.includes('access_token')) {
       document.getElementById('msg').textContent = 'No token found in URL.';
-      document.getElementById('err').textContent = 'Zoho did not return an access token. Close this tab and try connecting again.';
+      document.getElementById('err').textContent = 'Zoho did not return an access token. Screenshot this page and share it.';
       return;
     }
 
     const params     = new URLSearchParams(hash.replace(/^#/, ''));
     const token      = params.get('access_token');
     const expiresIn  = parseInt(params.get('expires_in') || '3600', 10);
+    const expiresAt  = Date.now() + expiresIn * 1000;
+
+    dbg.textContent += '\ntoken: ' + (token ? token.slice(0,12) + '…' : 'MISSING');
+    dbg.textContent += '\nexpires_in: ' + expiresIn + 's';
+    dbg.textContent += '\nexpiresAt: ' + new Date(expiresAt).toLocaleTimeString();
+    dbg.textContent += '\nnow:       ' + new Date().toLocaleTimeString();
 
     if (!token) {
       document.getElementById('err').textContent = 'Could not extract access token.';
       return;
     }
 
-    const session = {
-      accessToken: token,
-      expiresAt: Date.now() + expiresIn * 1000,
-    };
+    const session = { accessToken: token, expiresAt };
 
     try {
       localStorage.setItem('cm_z_sess', JSON.stringify(session));
-      document.getElementById('msg').textContent = 'Connected! Redirecting…';
+      dbg.textContent += '\n✅ Saved to localStorage';
+      document.getElementById('msg').textContent = 'Connected! Redirecting in 3s…';
     } catch (e) {
       document.getElementById('err').textContent = 'Could not save session: ' + e.message;
       return;
     }
 
-    // Go back to the main app
-    window.location.replace('/');
+    setTimeout(() => window.location.replace('/'), 3000);
   })();
 </script>
 </body>
