@@ -1,3 +1,8 @@
 [build]
   functions = "netlify/functions"
   publish = "."
+
+[[redirects]]
+  from = "/"
+  to   = "/catalog_manager.html"
+  status = 200
