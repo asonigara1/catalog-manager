@@ -267,6 +267,9 @@
     }
     .data-table thead { background: #f1f5f9; position: sticky; top: 0; z-index: 2; }
     .data-table th { padding: 9px 13px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); white-space: nowrap; border-bottom: 1px solid var(--border); }
+    .data-table th.th-sortable { cursor: pointer; user-select: none; }
+    .data-table th.th-sortable:hover { color: var(--primary); }
+    .sort-arrow { margin-left: 3px; opacity: 0.6; font-style: normal; }
     .data-table td { padding: 10px 13px; border-bottom: 1px solid #f1f5f9; color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .data-table tbody tr:last-child td { border-bottom: none; }
     .data-table tbody tr { cursor: pointer; transition: background 0.1s; }
@@ -437,6 +440,7 @@
     .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
     .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .detail-section-header { grid-column: 1 / -1; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); padding: 6px 0 2px; border-bottom: 1px solid var(--border); margin-top: 4px; }
 
     .detail-item { padding: 9px 11px; background: var(--bg); border-radius: 7px; border: 1px solid var(--border); }
     .detail-item.full { grid-column: 1 / -1; }
@@ -597,10 +601,16 @@
 // ═══════════════════════════════════════════════════════
 
 let allData = [], filteredData = [], columns = [], filterConfig = {};
+let sortCol = null, sortDir = 1; // 1 = asc, -1 = desc
 
-const PRIORITY_KW = ['sku','category','subcategory','gender','tp','cost','price','mrp','launch','year','occasion','usp','brand','style','colour','color'];
+// Fixed column order for home page table
+const HOME_COLS   = ['SKU','Category','Gender','Subcategory','Occasion','New TP','Launch Year','End of Life','Ext Proc','Pune Rack','Mumbai Keep'];
+// Columns with clickable sort headers
+const SORT_COLS   = ['SKU','New TP','Launch Year'];
+// Columns shown in the filter panel (home cols minus SKU — SKU uses the search bar)
+const FILTER_COLS = ['Category','Gender','Subcategory','Occasion','New TP','Launch Year','End of Life','Ext Proc','Pune Rack','Mumbai Keep'];
+
 const NUMERIC_KW  = ['tp','cost','price','mrp','year','qty','quantity','moq','gsm','weight','height','width','length'];
-const TABLE_MAX   = 9;
 
 function extractSheetId(url) {
   const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
@@ -648,6 +658,11 @@ function loadSheet() {
     if (!allData.length) { setSheetStatus('⚠️ No rows found.', '#b45309'); return; }
     setSheetStatus(`✅ ${allData.length} rows · ${columns.length} columns loaded.`, '#15803d');
     document.getElementById('headerMeta').textContent = `${allData.length} SKUs`;
+    // Remember this sheet so we can auto-load next time
+    localStorage.setItem('cm_sheet_cfg', JSON.stringify({
+      url:   document.getElementById('sheetUrlInput').value.trim(),
+      sheet: document.getElementById('sheetNameInput').value.trim(),
+    }));
     initApp();
   };
 
@@ -713,10 +728,10 @@ function buildFilters() {
   container.innerHTML = '';
   filterConfig = {};
 
-  const skuCol = columns.find(c => /^sku/i.test(c.trim()));
+  // Only show filters for the defined FILTER_COLS that exist in this sheet
+  const activeCols = FILTER_COLS.filter(c => columns.includes(c));
 
-  columns.forEach(col => {
-    if (skuCol && col === skuCol) return;
+  activeCols.forEach(col => {
     const uniq = uniqueValues(col), isNum = isNumericCol(col), id = cssId(col);
     const group = document.createElement('div');
     group.className = 'filter-group';
@@ -754,7 +769,8 @@ function applyFilters() {
   const q = (document.getElementById('skuSearch')?.value || '').trim().toLowerCase();
   filteredData = allData.filter(row => {
     if (q && !Object.values(row).some(v => v.toLowerCase().includes(q))) return false;
-    for (const col of columns) {
+    for (const col of FILTER_COLS) {
+      if (!columns.includes(col)) continue;
       const type = filterConfig[col], id = cssId(col);
       if (!type) continue;
       if (type === 'range') {
@@ -772,20 +788,30 @@ function applyFilters() {
     }
     return true;
   });
+
+  // Apply sort
+  if (sortCol && columns.includes(sortCol)) {
+    filteredData.sort((a, b) => {
+      const av = a[sortCol] ?? '', bv = b[sortCol] ?? '';
+      const an = parseFloat(av), bn = parseFloat(bv);
+      if (!isNaN(an) && !isNaN(bn)) return (an - bn) * sortDir;
+      return String(av).localeCompare(String(bv)) * sortDir;
+    });
+  }
+
   renderTable(filteredData);
   const el = document.getElementById('resultsMeta');
   el.innerHTML = `<strong>${filteredData.length}</strong> of <strong>${allData.length}</strong> SKUs`;
 }
 
 function chooseCols() {
-  const skuCol = columns.find(c => /^sku/i.test(c.trim()));
-  const ordered = skuCol ? [skuCol] : [];
-  for (const kw of PRIORITY_KW) {
-    const m = columns.find(c => c.toLowerCase().includes(kw) && !ordered.includes(c));
-    if (m && ordered.length < TABLE_MAX) ordered.push(m);
-  }
-  for (const c of columns) { if (!ordered.includes(c) && ordered.length < TABLE_MAX) ordered.push(c); }
-  return ordered;
+  // Return HOME_COLS that actually exist in the loaded sheet
+  return HOME_COLS.filter(c => columns.includes(c));
+}
+
+function toggleSort(col) {
+  if (sortCol === col) { sortDir = -sortDir; } else { sortCol = col; sortDir = 1; }
+  applyFilters();
 }
 
 function renderTable(data) {
@@ -796,7 +822,16 @@ function renderTable(data) {
   }
   const cols = chooseCols();
   const MAX = 1000, rows = data.slice(0, MAX);
-  let html = `<table class="data-table"><thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+
+  const headerHtml = cols.map(c => {
+    if (SORT_COLS.includes(c)) {
+      const arrow = sortCol === c ? (sortDir === 1 ? ' ↑' : ' ↓') : ' ⇅';
+      return `<th class="th-sortable" onclick="toggleSort('${esc(c)}')">${esc(c)}<span class="sort-arrow">${arrow}</span></th>`;
+    }
+    return `<th>${esc(c)}</th>`;
+  }).join('');
+
+  let html = `<table class="data-table"><thead><tr>${headerHtml}</tr></thead><tbody>`;
   rows.forEach(row => {
     const idx = allData.indexOf(row);
     html += `<tr onclick="openDrawer(${idx})">` + cols.map((col, ci) => {
@@ -811,11 +846,12 @@ function renderTable(data) {
 
 function resetFilters() {
   const s = document.getElementById('skuSearch'); if (s) s.value = '';
-  columns.forEach(col => {
+  FILTER_COLS.forEach(col => {
     const id = cssId(col), type = filterConfig[col];
     if (type === 'range') { const mn = document.getElementById(`fmin_${id}`), mx = document.getElementById(`fmax_${id}`); if (mn) mn.value=''; if (mx) mx.value=''; }
     else { const el = document.getElementById(`fsel_${id}`) || document.getElementById(`ftxt_${id}`); if (el) el.value=''; }
   });
+  sortCol = null; sortDir = 1;
   if (allData.length) applyFilters();
 }
 
@@ -1030,20 +1066,29 @@ function buildDetailGrid(row, skuCol) {
   const grid = document.getElementById('detailGrid');
   grid.innerHTML = '';
 
-  const priority = [], other = [];
-  columns.forEach(col => {
-    if (col === skuCol) return;
-    const v = row[col]; if (!v && v !== 0) return;
-    (PRIORITY_KW.some(k => col.toLowerCase().includes(k)) ? priority : other).push(col);
-  });
+  // Split columns into "rest" (not on home page) and "home" (already visible in table)
+  const restCols = columns.filter(c => c !== skuCol && !HOME_COLS.includes(c) && (row[c] || row[c] === 0));
+  const homeCols = HOME_COLS.filter(c => c !== skuCol && columns.includes(c) && (row[c] || row[c] === 0));
 
-  [...priority, ...other].forEach(col => {
-    const val  = row[col];
-    const item = document.createElement('div');
-    item.className = `detail-item${String(val).length > 40 ? ' full' : ''}`;
-    item.innerHTML = `<div class="detail-label">${esc(col)}</div><div class="detail-value">${esc(String(val))}</div>`;
-    grid.appendChild(item);
-  });
+  const renderSection = (cols, label) => {
+    if (!cols.length) return;
+    if (label) {
+      const hdr = document.createElement('div');
+      hdr.className = 'detail-section-header';
+      hdr.textContent = label;
+      grid.appendChild(hdr);
+    }
+    cols.forEach(col => {
+      const val  = row[col];
+      const item = document.createElement('div');
+      item.className = `detail-item${String(val).length > 40 ? ' full' : ''}`;
+      item.innerHTML = `<div class="detail-label">${esc(col)}</div><div class="detail-value">${esc(String(val))}</div>`;
+      grid.appendChild(item);
+    });
+  };
+
+  renderSection(restCols, restCols.length ? 'Additional Details' : null);
+  renderSection(homeCols, homeCols.length && restCols.length ? 'Core Fields' : null);
 }
 
 // ── Zoho panel states ──────────────────────────────────
@@ -1203,12 +1248,25 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
 
 // ── Boot ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Token is now saved by oauth.html before redirect — just restore config
   restoreZCfgUI();
 
   document.getElementById('sheetUrlInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') loadSheet();
   });
+
+  // ── Auto-load saved sheet ──────────────────────────────
+  const savedSheet = (() => { try { return JSON.parse(localStorage.getItem('cm_sheet_cfg') || 'null'); } catch { return null; } })();
+  if (savedSheet?.url) {
+    document.getElementById('sheetUrlInput').value = savedSheet.url;
+    if (savedSheet.sheet) document.getElementById('sheetNameInput').value = savedSheet.sheet;
+    loadSheet();
+  }
+
+  // ── Auto-connect Zoho if credentials are saved but token is missing/expired ──
+  if (zCfg.clientId && !isZConnected()) {
+    // Small delay so the page renders before navigating away for OAuth
+    setTimeout(() => zohoConnect(), 800);
+  }
 });
 </script>
 </body>
